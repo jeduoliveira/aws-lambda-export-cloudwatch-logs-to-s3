@@ -1,4 +1,4 @@
-###AWS Lambda - Export CloudWatch Logs to S3 Bucket
+### AWS Lambda - Export CloudWatch Logs to S3 Bucket
 
 Está função tem como objetivo reter os logs no S3 com o tempo maior que 30 dias.
 
