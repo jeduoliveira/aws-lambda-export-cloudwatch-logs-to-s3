@@ -1,8 +1,10 @@
 ### AWS Lambda - Export CloudWatch Logs to S3 Bucket
 
-Está função tem como objetivo reter os logs no S3 com o tempo maior que 30 dias.
+The purpose of this function is to retain all cloudWatch logs older than 30 days in bucket s3.
 
-No bucket será configurado uma política de expurgo, 90 dias no glacier após 365 excluir.
+It'll configure a delete policy, 90 days copy to glacier, after 365 day remove forever.
+
+A deletion policy must be set on s3, after 365 days it should be removed forever.
 
 ##### Parâmetros
     bucket_name: export-watchlogs-to-s3
