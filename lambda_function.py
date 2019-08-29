@@ -1,11 +1,14 @@
 import json
 import boto3
-import collections
 import datetime
 import math
 import time
 import sys
 import os
+import logging
+
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
 
 s3_client = boto3.client('s3')
 logs_client = boto3.client('logs')
@@ -21,24 +24,21 @@ def lambda_handler(event, context):
     try:
         for logGroupName in getCloudWatchLogGroups():  
             try:
-                print("logGroupName = %s" % logGroupName)
+                logging.info("logGroupName = %s" % logGroupName)
                 response = createExportTask(logGroupName)
 
                 waitForExportTaskToComplete(response['taskId'])
                 streams = getLogsStreamByLogGroupName(logGroupName, endOfDay)
                 
                 for stream in streams:    
-                    print("# Deleting %s " % stream['logStreamName'])
+                    logging.info("# Deleting %s " % stream['logStreamName'])
                     deleteStreams(logGroupName, stream['logStreamName'])        
                     
-            except:
-                print('An error was found createExportTask = %s' % logGroupName)
-                pass
+            except Exception as e:
+                logging.error("No valid JSON message: %s", parsed_message)
 
     except Exception as e:
-        exception_type = e.__class__.__name__
-        exception_message = str(e)
-        raise
+        logging.error("Error: %s", str(e))
 
 def deleteStreams(logGroupName, logStreamName):
     response = logs_client.delete_log_stream(
@@ -52,11 +52,11 @@ def waitForExportTaskToComplete(taskId):
     taskStatus = task['status']['code'];
     
     if (taskStatus == 'RUNNING' or taskStatus == 'PENDING') :    
-        print('Task is running for %s with stats %s ' % ( task['logGroupName']  , task['status']));
+        logging.info('Task is running for %s with stats %s ' % ( task['logGroupName']  , task['status']));
         time.sleep( 1 )
         return waitForExportTaskToComplete(taskId)
     
-    print('Task is fineshed for %s with stats %s ' % ( task['logGroupName']  , task['status']));
+    logging.info('Task is fineshed for %s with stats %s ' % ( task['logGroupName']  , task['status']));
     return True
 
 def getCloudWatchLogGroups():
@@ -69,11 +69,10 @@ def getCloudWatchLogGroups():
         for result in listOfResponse:
             try:
                 if not result['retentionInDays']:
-                    print('retentionInDays = %s' % result['retentionInDays'])
+                    logging.debug('retentionInDays = %s' % result['retentionInDays'])
             except:
                 groupnames.append(result["logGroupName"])
                 pass
-
     return groupnames
 
 def createExportTask(logGroupName):
@@ -95,10 +94,10 @@ def getLogPathForS3(logGroupName):
         if logGroupName.startswith('/'):
             path = logGroupName[1:]
         
-        print( getDatePath() + "/" + path)
+        logging.info( getDatePath() + "/" + path)
         return  path + "/" + getDatePath()
     except Exception as e:
-        print("Error: Occurred erro in Method getLogPathForS3! ")
+        logging.error("Error: %s", str(e))
 
 def getDatePath():
     return datetime.datetime.now().strftime('%Y%m%d')
@@ -139,4 +138,4 @@ def getLogsStreamByLogGroupName(logGroupName, endOfDay):
 
         return deleteLogsStream
     except Exception as e:
-        print("Error: Occurred erro in Method getLogsStreamByLogGroupName! ")  
+        logging.error("Error: %s", str(e))
